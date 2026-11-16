@@ -1,6 +1,7 @@
 import React from 'react';
 
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+// On Vercel both frontend and backend share the same domain, so /api is always correct.
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || '';
 
 export default function PaymentTable({ payments, loading, showActions, onStatusChange }) {
   if (loading) {
