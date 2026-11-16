@@ -7,6 +7,9 @@ const paymentSchema = new mongoose.Schema(
     semester: { type: String, enum: ['1st', '2nd'], default: '1st' },
     status: { type: String, enum: ['paid', 'not_paid'], default: 'not_paid' },
     receipt: { type: String, default: null },
+    receipt_data: { type: Buffer, default: null, select: false },
+    receipt_content_type: { type: String, default: null },
+    receipt_filename: { type: String, default: null },
     uploaded_at: { type: Date, default: null },
   },
   {

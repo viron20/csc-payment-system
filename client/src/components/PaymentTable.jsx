@@ -71,7 +71,7 @@ export default function PaymentTable({ payments, loading, showActions, onStatusC
               <td className="table-cell">
                 {p.receipt ? (
                   <a
-                    href={`${API_URL}/uploads/${p.receipt}`}
+                    href={`${API_URL}/api/payments/${p.id}/receipt`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-brand-600 hover:text-brand-700 text-xs font-medium hover:underline"

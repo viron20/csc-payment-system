@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const Payment = require('../models/Payment');
 
 // GET /api/payments
@@ -35,15 +37,60 @@ const uploadReceipt = async (req, res) => {
       return res.status(400).json({ message: 'This year is already marked as paid' });
     }
 
-    existing.receipt = req.file.filename;
+    const ext = path.extname(req.file.originalname) || '.jpg';
+    const safeFilename = `receipt_${userId}_${Date.now()}${ext}`;
+
+    existing.receipt = safeFilename;
+    existing.receipt_data = req.file.buffer;
+    existing.receipt_content_type = req.file.mimetype || 'image/jpeg';
+    existing.receipt_filename = req.file.originalname;
     existing.uploaded_at = new Date();
     await existing.save();
 
-    res.json({ message: 'Receipt uploaded successfully', receipt: req.file.filename });
+    res.json({
+      message: 'Receipt uploaded successfully',
+      receipt: existing.receipt,
+      paymentId: existing._id,
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error uploading receipt:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-module.exports = { getPayments, uploadReceipt };
+// GET /api/payments/:id/receipt
+const getReceipt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payment = await Payment.findById(id).select('+receipt_data +receipt_content_type +receipt_filename');
+
+    if (!payment) {
+      return res.status(404).send('Payment not found');
+    }
+
+    // 1. Serve directly from MongoDB binary storage
+    if (payment.receipt_data && payment.receipt_data.length > 0) {
+      res.set({
+        'Content-Type': payment.receipt_content_type || 'image/jpeg',
+        'Content-Disposition': `inline; filename="${payment.receipt_filename || 'receipt'}"`,
+        'Cache-Control': 'public, max-age=86400',
+      });
+      return res.send(payment.receipt_data);
+    }
+
+    // 2. Fallback to local disk file if legacy
+    if (payment.receipt) {
+      const filePath = path.join(__dirname, '../uploads', payment.receipt);
+      if (fs.existsSync(filePath)) {
+        return res.sendFile(filePath);
+      }
+    }
+
+    return res.status(404).send('No receipt image available for this payment');
+  } catch (err) {
+    console.error('Error retrieving receipt:', err);
+    res.status(500).send('Error retrieving receipt');
+  }
+};
+
+module.exports = { getPayments, uploadReceipt, getReceipt };

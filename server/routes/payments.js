@@ -1,20 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const { getPayments, uploadReceipt } = require('../controllers/paymentsController');
+const { getPayments, uploadReceipt, getReceipt } = require('../controllers/paymentsController');
 const { authenticate } = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads'));
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `receipt_${req.user?.id || 'unknown'}_${Date.now()}${ext}`;
-    cb(null, name);
-  },
-});
+// In-memory buffer storage (stores directly to MongoDB without disk dependency)
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -30,5 +21,6 @@ const upload = multer({
 
 router.get('/payments', authenticate, getPayments);
 router.post('/upload-receipt', authenticate, upload.single('receipt'), uploadReceipt);
+router.get('/payments/:id/receipt', getReceipt);
 
 module.exports = router;

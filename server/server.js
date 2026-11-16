@@ -25,6 +25,25 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Backward compatibility: serve receipts from MongoDB if requested via /uploads/:filename
+app.get('/uploads/:filename', async (req, res, next) => {
+  try {
+    const Payment = require('./models/Payment');
+    const payment = await Payment.findOne({ receipt: req.params.filename }).select('+receipt_data +receipt_content_type +receipt_filename');
+    if (payment && payment.receipt_data && payment.receipt_data.length > 0) {
+      res.set({
+        'Content-Type': payment.receipt_content_type || 'image/jpeg',
+        'Content-Disposition': `inline; filename="${payment.receipt_filename || req.params.filename}"`,
+        'Cache-Control': 'public, max-age=86400',
+      });
+      return res.send(payment.receipt_data);
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api', apiLimiter);
 
