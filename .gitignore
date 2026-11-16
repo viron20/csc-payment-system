@@ -29,8 +29,7 @@ dist/
 out/
 
 # Uploaded receipts & user uploads (NEVER COMMIT USER FILES)
-server/uploads/*
-!server/uploads/.gitkeep
+server/uploads/
 temp/
 tmp/
 *.tmp

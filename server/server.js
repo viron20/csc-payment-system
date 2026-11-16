@@ -2,7 +2,6 @@ require('dotenv').config();
 const connectDB = require('./models/db');
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 const { syncAllStudentPayments } = require('./controllers/authController');
 
@@ -26,25 +25,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Backward compatibility: serve receipts from MongoDB if requested via /uploads/:filename
-app.get('/uploads/:filename', async (req, res, next) => {
-  try {
-    const Payment = require('./models/Payment');
-    const payment = await Payment.findOne({ receipt: req.params.filename }).select('+receipt_data +receipt_content_type +receipt_filename');
-    if (payment && payment.receipt_data && payment.receipt_data.length > 0) {
-      res.set({
-        'Content-Type': payment.receipt_content_type || 'image/jpeg',
-        'Content-Disposition': `inline; filename="${payment.receipt_filename || req.params.filename}"`,
-        'Cache-Control': 'public, max-age=86400',
-      });
-      return res.send(payment.receipt_data);
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Receipts are stored in MongoDB — no local uploads directory needed.
+// Legacy /uploads/:filename requests are handled by MongoDB lookup.
 app.use('/api', apiLimiter);
 
 // ── Routes ─────────────────────────────────────────────────────────
@@ -102,7 +84,6 @@ const startServer = async () => {
 
   app.listen(PORT, async () => {
     console.log(`\n🚀 CSC Payment Server running on http://localhost:${PORT}`);
-    console.log(`📁 Uploads served from /uploads`);
     console.log(`🔗 API base: http://localhost:${PORT}/api\n`);
 
     // Sync on startup to catch any missing records

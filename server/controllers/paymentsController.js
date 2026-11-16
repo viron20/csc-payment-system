@@ -1,5 +1,3 @@
-const path = require('path');
-const fs = require('fs');
 const Payment = require('../models/Payment');
 
 // GET /api/payments
@@ -76,14 +74,6 @@ const getReceipt = async (req, res) => {
         'Cache-Control': 'public, max-age=86400',
       });
       return res.send(payment.receipt_data);
-    }
-
-    // 2. Fallback to local disk file if legacy
-    if (payment.receipt) {
-      const filePath = path.join(__dirname, '../uploads', payment.receipt);
-      if (fs.existsSync(filePath)) {
-        return res.sendFile(filePath);
-      }
     }
 
     return res.status(404).send('No receipt image available for this payment');
